@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IT-Umfrage 2026 – adminservice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#009CC4; --blue-deep:#007A9A; --yellow:#FAB800; --gray:#707070;
+  --ink:#1D2B33; --muted:#566871; --paper:#EAF4F8; --card:#FFFFFF; --card-2:#F4FAFC;
+  --line:#CFE1E8; --chip:#F2F8FA; --cs:96px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --ink:#E3EEF2; --muted:#9FB3BB; --paper:#0E1A20; --card:#15252D; --card-2:#1A2D36;
+         --line:#2B434E; --chip:#1C313A; --gray:#9AA4A9; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Open Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font-size:16px; line-height:1.5; min-height:100vh;
+  padding-top:env(safe-area-inset-top,0px);
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:3px;border-radius:6px}
+h1:focus,h2:focus{outline:none}
+
+/* Kopfzeile */
+.progress{position:fixed;top:0;left:0;right:0;height:5px;background:var(--line);z-index:10}
+.progress span{display:block;height:100%;width:0;background:var(--yellow);transition:width .5s ease}
+.top{max-width:680px;margin:0 auto;padding:26px 20px 0;display:flex;align-items:center;gap:12px}
+.brand{line-height:1.2}
+.brand b{display:block;font-size:1.05rem;font-weight:800}
+.brand small{color:var(--muted);font-size:.85rem}
+.badge{margin-left:auto;font-size:.78rem;font-weight:600;background:var(--yellow);color:#1D2B33;padding:5px 10px;border-radius:999px}
+
+/* Kartenstapel */
+main{max-width:680px;margin:0 auto;padding:30px 20px calc(var(--cs) + 70px)}
+.stage{position:relative;filter:drop-shadow(0 1px 1px rgba(10,60,80,.10)) drop-shadow(0 10px 24px rgba(10,60,80,.08))}
+.stack{position:absolute;inset:0;background:var(--card-2);
+  clip-path:polygon(0 0,calc(100% - 38px) 0,100% 38px,100% 100%,0 100%);border-radius:18px}
+.stack.s1{transform:translateY(10px) scale(.97)}
+.stack.s2{transform:translateY(20px) scale(.94);opacity:.7}
+.card{
+  position:relative;background:var(--card);border-radius:18px;padding:34px 34px 26px;
+  clip-path:polygon(0 0,calc(100% - 38px) 0,100% 38px,100% 100%,0 100%);
+  transition:transform .42s cubic-bezier(.2,.8,.2,1),opacity .42s ease;
+}
+.flap{position:absolute;top:0;right:0;width:38px;height:38px;background:var(--yellow);
+  clip-path:polygon(0 0,100% 100%,0 100%);border-bottom-left-radius:4px}
+.card.entering{transform:translateY(12px) scale(.97);opacity:.35}
+.card.leaving{position:absolute;inset:0 0 auto 0;z-index:2;pointer-events:none}
+.card.leaving.to-left{transform:translate(-44px,-8px) rotate(-3deg);opacity:0}
+.card.leaving.to-right{transform:translate(44px,-8px) rotate(3deg);opacity:0}
+
+.part{margin:0 0 10px;font-size:.88rem;font-weight:700;color:var(--blue-deep)}
+@media (prefers-color-scheme: dark){.part{color:var(--blue)}}
+h1{font-size:clamp(1.9rem,5.2vw,2.6rem);line-height:1.12;font-weight:800;letter-spacing:-.015em;margin:4px 0 14px;max-width:16ch}
+h2{font-size:1.38rem;line-height:1.3;font-weight:700;margin:0 0 6px;max-width:34ch}
+.sub{margin:0;color:var(--muted)}
+.lead{font-size:1.1rem;margin:0 0 12px;max-width:44ch}
+.note{color:var(--muted);margin:0;max-width:48ch;font-size:.95rem}
+.answer{margin:26px 0 8px}
+
+/* Navigation */
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;flex-wrap:wrap}
+.primary{background:var(--blue-deep);color:#fff;border:0;border-radius:10px;padding:13px 24px;font-weight:700;cursor:pointer;transition:background .15s,transform .1s}
+.primary:hover{background:#006A86}
+.primary:active{transform:translateY(1px)}
+.primary:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+.ghost{background:none;border:0;color:var(--muted);font-weight:600;padding:10px 4px;cursor:pointer}
+.ghost:hover{color:var(--ink)}
+.hint{font-size:.85rem;color:var(--muted)}
+.error{flex-basis:100%;margin:0;color:#B42318;font-weight:600;font-size:.92rem}
+@media (prefers-color-scheme: dark){.error{color:#FF8A80}}
+
+/* Skala mit Stationen */
+.readout{font-size:1.7rem;font-weight:800;margin:0 0 14px;min-height:2.2rem;letter-spacing:-.01em}
+.readout.empty{font-size:1rem;font-weight:600;color:var(--muted)}
+.track{position:relative;display:grid;grid-template-columns:repeat(5,1fr);touch-action:none;user-select:none;cursor:pointer;padding-top:4px}
+.rail{position:absolute;top:15px;left:10%;right:10%;height:6px;border-radius:3px;background:var(--line)}
+.rail-fill{height:100%;width:0;border-radius:3px;background:var(--yellow);transition:width .25s ease}
+.stop{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 2px;cursor:pointer;position:relative}
+.dot{width:24px;height:24px;border-radius:50%;background:var(--card);border:3px solid var(--line);transition:transform .2s,background .2s,border-color .2s}
+.stop[aria-checked="true"] .dot{background:var(--yellow);border-color:var(--blue-deep);transform:scale(1.3)}
+.lab{font-size:.8rem;color:var(--muted);text-align:center;hyphens:auto;line-height:1.25}
+.stop[aria-checked="true"] .lab{color:var(--ink);font-weight:700}
+
+/* Akku */
+.battery{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:6px;border:3px solid var(--ink);border-radius:12px;height:72px;margin-right:12px}
+.nub{position:absolute;right:-13px;top:50%;width:9px;height:26px;transform:translateY(-50%);background:var(--ink);border-radius:0 5px 5px 0}
+.cell{border:0;border-radius:6px;background:var(--chip);cursor:pointer;transition:background .2s,transform .15s}
+.cell:hover{transform:scaleY(.94)}
+.cell.on{background:var(--blue)}
+.battery[data-level="low"] .cell.on{background:var(--yellow)}
+.ends{display:flex;justify-content:space-between;gap:16px;margin-top:10px;font-size:.85rem;color:var(--muted)}
+
+/* Tastenkappen */
+.keys{display:flex;gap:12px;flex-wrap:wrap}
+.key{width:58px;height:58px;border:2px solid var(--line);border-bottom-width:6px;border-radius:12px;background:var(--card);font-size:1.3rem;font-weight:800;cursor:pointer;transition:transform .08s,border-width .08s,background .15s}
+.key:hover{background:var(--chip)}
+.key[aria-checked="true"]{background:var(--yellow);color:#1D2B33;border-color:#C99400;border-bottom-width:2px;transform:translateY(4px)}
+
+/* Matrix */
+.mrow+.mrow{margin-top:20px}
+.mlab{margin:0 0 8px;font-weight:600}
+.seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.segb{border:1.5px solid var(--line);background:var(--chip);border-radius:9px;padding:9px 4px;font-size:.82rem;font-weight:600;line-height:1.2;cursor:pointer;hyphens:auto;min-height:44px;transition:background .15s,color .15s,border-color .15s}
+.segb:hover{border-color:var(--blue)}
+.segb[aria-checked="true"]{background:var(--blue-deep);border-color:var(--blue-deep);color:#fff}
+
+/* Auswahl-Chips */
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1.5px solid var(--line);background:var(--chip);border-radius:999px;padding:10px 18px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.chip:hover{border-color:var(--blue)}
+.chip[aria-checked="true"],.chip[aria-pressed="true"]{background:var(--blue-deep);border-color:var(--blue-deep);color:#fff}
+.chip[aria-pressed] ::before{content:""}
+.other{margin-top:12px;width:100%}
+
+textarea,input[type=text]{
+  width:100%;font:inherit;color:var(--ink);background:var(--chip);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;
+}
+textarea{min-height:130px;resize:vertical}
+textarea:focus,input[type=text]:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,156,196,.2)}
+
+details{margin-top:22px;font-size:.85rem}
+summary{cursor:pointer;font-weight:600;color:var(--muted)}
+pre{background:var(--chip);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-size:.8rem}
+
+/* Kreaturen */
+.crew{position:fixed;left:0;right:0;bottom:0;height:calc(var(--cs) + 40px);pointer-events:none;z-index:5}
+.creature{position:absolute;left:0;bottom:calc(8px + env(safe-area-inset-bottom,0px));width:var(--cs);height:var(--cs);will-change:transform}
+.creature svg{width:100%;height:100%;overflow:visible;pointer-events:auto;cursor:pointer;display:block}
+.tilt{width:100%;height:100%;transform-origin:50% 100%;transition:transform .12s linear}
+.hop,.bob{width:100%;height:100%}
+.hop.jump{animation:jump .62s cubic-bezier(.3,1.5,.5,1)}
+@keyframes jump{0%{transform:translateY(0) scaleY(1)}12%{transform:translateY(0) scaleY(.88)}40%{transform:translateY(-36px) scaleY(1.05)}100%{transform:translateY(0) scaleY(1)}}
+.walk .bob{animation:bob .3s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+.wiggle .bob{animation:wig .5s ease-in-out}
+@keyframes wig{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}50%{transform:rotate(7deg)}75%{transform:rotate(-4deg)}}
+.eye{transform-box:fill-box;transform-origin:center;transition:transform .07s}
+.blink .eye{transform:scaleY(.1)}
+.mouth>*{display:none}
+.creature[data-mood="happy"] .m-happy,.creature[data-mood="neutral"] .m-neutral,
+.creature[data-mood="sad"] .m-sad,.creature[data-mood="wow"] .m-wow{display:inline}
+.sweat{opacity:0;transition:opacity .3s}
+.creature[data-mood="sad"] .sweat{opacity:1;animation:drip 1.4s ease-in infinite}
+@keyframes drip{0%{transform:translateY(0)}80%{transform:translateY(5px)}100%{transform:translateY(0)}}
+.spark{opacity:0;transform-box:fill-box;transform-origin:center}
+.cheer .spark{animation:twinkle .9s ease-out}
+@keyframes twinkle{0%{opacity:0;transform:scale(.3)}30%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:scale(.8) rotate(40deg)}}
+.ant{transform-box:view-box;transform-origin:0 -10px}
+.buzz .ant{animation:antw .5s ease-in-out}
+@keyframes antw{0%,100%{transform:rotate(0)}30%{transform:rotate(-9deg)}65%{transform:rotate(8deg)}}
+.led{animation:led 1.8s steps(2) infinite}
+.led:nth-of-type(2){animation-delay:.6s}
+.busy .led{animation-duration:.18s}
+@keyframes led{0%{opacity:1}100%{opacity:.25}}
+.cable{stroke-dasharray:0}
+.bubble{
+  position:absolute;bottom:calc(var(--cs) + 8px);left:50%;width:max-content;max-width:210px;
+  background:var(--card);color:var(--ink);border:2px solid var(--blue);border-radius:14px;
+  padding:8px 12px;font-size:.85rem;font-weight:600;line-height:1.3;text-align:center;
+  opacity:0;transform:translateX(calc(-50% + var(--shift,0px))) translateY(6px) scale(.92);
+  transition:opacity .2s,transform .2s;pointer-events:none;
+}
+.bubble.show{opacity:1;transform:translateX(calc(-50% + var(--shift,0px))) translateY(0) scale(1)}
+
+@media (max-width:560px){
+  :root{--cs:70px}
+  .card{padding:26px 20px 22px}
+  h2{font-size:1.2rem}
+  .readout{font-size:1.4rem}
+  .key{width:50px;height:50px}
+  .segb{font-size:.74rem;padding:8px 2px}
+  .lab{font-size:.72rem}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="progress" role="progressbar" aria-label="Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="bar"></span></div>
+
+<header class="top">
+  <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+    <path d="M0 0H25V15H40V40H0Z" fill="#009CC4"/>
+    <path d="M27.5 0L40 12.5H27.5Z" fill="#FAB800"/>
+    <text x="3.5" y="35" font-family="Open Sans, Arial, sans-serif" font-weight="700" font-size="15" fill="#fff">ICS</text>
+  </svg>
+  <div class="brand"><b>IT-Umfrage 2026</b><small>adminservice</small></div>
+  <span class="badge" id="demo" hidden>Demo-Modus: Antworten werden nicht gesendet</span>
+</header>
+
+<main>
+  <div class="stage" id="stage" aria-live="polite">
+    <div class="stack s2" aria-hidden="true"></div>
+    <div class="stack s1" aria-hidden="true"></div>
+  </div>
+</main>
+
+<!-- Die drei IT-Kreaturen -->
+<div class="crew" id="crew" aria-hidden="true">
+
+  <div class="creature" data-c="pixel" data-mood="happy">
+    <div class="bubble"></div>
+    <div class="hop"><div class="tilt"><div class="bob">
+    <svg viewBox="-50 -50 100 100">
+      <rect x="-8" y="28" width="16" height="12" fill="#5C6970"/>
+      <rect x="-22" y="38" width="44" height="8" rx="4" fill="#5C6970"/>
+      <rect x="-40" y="-40" width="80" height="70" rx="12" fill="#009CC4"/>
+      <rect x="-32" y="-32" width="64" height="52" rx="7" fill="#E8F6FA"/>
+      <circle cx="-23" cy="4" r="4" fill="#FAB800" opacity=".55"/>
+      <circle cx="23" cy="4" r="4" fill="#FAB800" opacity=".55"/>
+      <g class="eye"><g class="pupil"><circle cx="-12" cy="-10" r="6" fill="#1D2B33"/><circle cx="-10" cy="-12" r="2" fill="#fff"/></g></g>
+      <g class="eye"><g class="pupil"><circle cx="12" cy="-10" r="6" fill="#1D2B33"/><circle cx="14" cy="-12" r="2" fill="#fff"/></g></g>
+      <g class="mouth" stroke="#1D2B33" stroke-width="3" stroke-linecap="round" fill="none">
+        <path class="m-happy" d="M-9 4 Q0 13 9 4"/>
+        <path class="m-neutral" d="M-7 8 L7 8"/>
+        <path class="m-sad" d="M-9 12 Q0 4 9 12"/>
+        <ellipse class="m-wow" cx="0" cy="8" rx="4" ry="5" fill="#1D2B33" stroke="none"/>
+      </g>
+      <path class="sweat" d="M31 -30 q5 8 0 11 q-5 -3 0 -11z" fill="#7FD3EA"/>
+      <path class="spark" d="M-46 -44 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#FAB800"/>
+      <path class="spark" d="M44 -36 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#FAB800"/>
+    </svg>
+    </div></div></div>
+  </div>
+
+  <div class="creature" data-c="taste" data-mood="happy">
+    <div class="bubble"></div>
+    <div class="hop"><div class="tilt"><div class="bob">
+    <svg viewBox="-50 -50 100 100">
+      <rect x="-30" y="32" width="8" height="12" rx="3" fill="#C98F00"/>
+      <rect x="22" y="32" width="8" height="12" rx="3" fill="#C98F00"/>
+      <rect x="-47" y="-12" width="94" height="46" rx="9" fill="#FAB800"/>
+      <g fill="#FFE08A">
+        <rect x="-40" y="-6" width="9" height="8" rx="2"/><rect x="-28" y="-6" width="9" height="8" rx="2"/>
+        <rect class="led" x="-16" y="-6" width="9" height="8" rx="2"/><rect x="-4" y="-6" width="9" height="8" rx="2"/>
+        <rect class="led" x="8" y="-6" width="9" height="8" rx="2"/><rect x="20" y="-6" width="9" height="8" rx="2"/>
+        <rect x="32" y="-6" width="9" height="8" rx="2"/>
+        <rect x="-40" y="7" width="9" height="8" rx="2"/><rect x="32" y="7" width="9" height="8" rx="2"/>
+        <rect x="-40" y="20" width="9" height="8" rx="2"/><rect x="32" y="20" width="9" height="8" rx="2"/>
+      </g>
+      <g class="eye"><circle cx="-12" cy="12" r="7.5" fill="#fff"/><g class="pupil"><circle cx="-12" cy="12" r="3.8" fill="#1D2B33"/></g></g>
+      <g class="eye"><circle cx="12" cy="12" r="7.5" fill="#fff"/><g class="pupil"><circle cx="12" cy="12" r="3.8" fill="#1D2B33"/></g></g>
+      <g class="mouth" stroke="#1D2B33" stroke-width="3" stroke-linecap="round" fill="none">
+        <path class="m-happy" d="M-6 23 Q0 29 6 23"/>
+        <path class="m-neutral" d="M-5 26 L5 26"/>
+        <path class="m-sad" d="M-6 29 Q0 22 6 29"/>
+        <ellipse class="m-wow" cx="0" cy="26" rx="3" ry="3.8" fill="#1D2B33" stroke="none"/>
+      </g>
+      <path class="sweat" d="M40 -26 q5 8 0 11 q-5 -3 0 -11z" fill="#7FD3EA"/>
+      <path class="spark" d="M-48 -30 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#009CC4"/>
+      <path class="spark" d="M44 -36 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#009CC4"/>
+    </svg>
+    </div></div></div>
+  </div>
+
+  <div class="creature" data-c="klick" data-mood="happy">
+    <div class="bubble"></div>
+    <div class="hop"><div class="tilt"><div class="bob">
+    <svg viewBox="-50 -50 100 100">
+      <path class="cable" d="M0 -40 C0 -54 26 -56 34 -46 S46 -32 41 -24" stroke="#5C6970" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <rect x="-28" y="-40" width="56" height="86" rx="28" fill="#B4C1C7"/>
+      <path d="M0 -40 L0 -14" stroke="#8C989E" stroke-width="2"/>
+      <rect x="-3.5" y="-33" width="7" height="14" rx="3.5" fill="#FAB800"/>
+      <g class="eye"><circle cx="-11" cy="4" r="8" fill="#fff"/><g class="pupil"><circle cx="-11" cy="4" r="4" fill="#1D2B33"/></g></g>
+      <g class="eye"><circle cx="11" cy="4" r="8" fill="#fff"/><g class="pupil"><circle cx="11" cy="4" r="4" fill="#1D2B33"/></g></g>
+      <g class="mouth" stroke="#1D2B33" stroke-width="3" stroke-linecap="round" fill="none">
+        <path class="m-happy" d="M-7 17 Q0 24 7 17"/>
+        <path class="m-neutral" d="M-5 20 L5 20"/>
+        <path class="m-sad" d="M-7 23 Q0 15 7 23"/>
+        <ellipse class="m-wow" cx="0" cy="20" rx="3.5" ry="4.5" fill="#1D2B33" stroke="none"/>
+      </g>
+      <path class="sweat" d="M28 -22 q5 8 0 11 q-5 -3 0 -11z" fill="#7FD3EA"/>
+      <path class="spark" d="M-44 -30 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#FAB800"/>
+      <path class="spark" d="M44 4 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#009CC4"/>
+    </svg>
+    </div></div></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   1) FORMBRICKS-EINSTELLUNGEN
+   Leer lassen = Demo-Modus (es wird nichts gesendet).
+   ========================================================= */
+const CONFIG = {
+  formbricksHost: "https://app.formbricks.com",
+  environmentId: "cmsd0xb2c7w0401q0xqm8efu0",   // Workspace-ID aus Formbricks
+  surveyId: "cmwahm85j01el01xcd6iwxk7i",        // IT Umfrage 2026
+  // Zuordnung: unsere Fragen-ID -> Fragen-ID in Formbricks
+  questionIds: {
+    gesamt:       "blgsz007onqos0c1thbsvlaq",
+    gesamt_grund: "ihrcqb40gyyviiogwt5w67i9",
+    alltag:       "bc3epk695seim7g7ecs5lk8f",
+    ausstattung:  "ntepdypsyigzp0fbqdgkelo0",
+    software:     "aiyh13ahsihff1v07fvixjfq",
+    ausbremsen:   "xdfneba1eissbcce20uoduz1",
+    ursachen:     "y38uak8b0es2xdo4t7b3s74k",
+    sicherheit:   "v8wgwsj9sues6tkhia0s6zqo",
+    schulungen:   "h43h888mep5szf2o2hgyabmt",
+    wunsch:       "mvo8htdr3h5uogtj86pyjr4d"
+  }
+};
+
+/* =========================================================
+   2) INHALT DER UMFRAGE
+   Wichtig: Die Antworttexte müssen exakt so in Formbricks stehen.
+   ========================================================= */
+const PARTS = ["Der Service", "Ihr Arbeitsplatz", "Sicherheit und Wissen", "Ihr Wunsch"];
+const QUALITY = ["Ausbaufähig", "Geht so", "In Ordnung", "Gut", "Hervorragend"];
+const OTHER = "__other__";
+
+const STEPS = [
+  { id: "gesamt", part: 1, type: "stops",
+    title: "Wie zufrieden sind Sie insgesamt mit dem Service unserer IT?",
+    labels: QUALITY,
+    say: ["pixel", "Ganz entspannt: einfach auf die Skala tippen oder ziehen."] },
+
+  { id: "gesamt_grund", part: 1, type: "text", optional: true,
+    when: a => a.gesamt != null && a.gesamt <= 2,
+    title: "Das tut uns leid. Was läuft aus Ihrer Sicht gerade nicht rund?",
+    placeholder: "Schreiben Sie ruhig ganz direkt, was Sie stört." },
+
+  { id: "alltag", part: 1, type: "matrix",
+    title: "Wie erleben Sie die IT im Alltag?",
+    rows: ["Reaktions- und Bearbeitungszeit bei Tickets",
+           "Erreichbarkeit, wenn Sie Unterstützung brauchen",
+           "Verständlichkeit von Erklärungen, z. B. bei Störungen"],
+    cols: QUALITY,
+    say: ["taste", "Ehrlichkeit ist hier ausdrücklich erwünscht."] },
+
+  { id: "ausstattung", part: 2, type: "battery",
+    title: "Wie zufrieden sind Sie mit Ihrer Hard- und Software-Ausstattung?",
+    labels: ["Dringend erneuern", "Eher veraltet", "Ausreichend", "Gut ausgestattet", "Bestens ausgestattet"],
+    say: ["pixel", "Ich hoffe, ich bin nicht gemeint."] },
+
+  { id: "software", part: 2, type: "text", optional: true,
+    title: "Welche Software oder Funktion fehlt Ihnen, bzw. was würde Ihnen die Arbeit erleichtern?",
+    placeholder: "Zum Beispiel ein Programm, eine Funktion oder ein Zugang." },
+
+  { id: "ausbremsen", part: 2, type: "single",
+    title: "Wie oft bremsen IT-Probleme Sie bei der Arbeit aus?",
+    sub: "Zum Beispiel Abstürze, langsame Systeme oder WLAN.",
+    options: ["Nie", "Selten", "Monatlich", "Wöchentlich", "Täglich"],
+    say: ["taste", "Das WLAN war’s nicht. Ehrlich."] },
+
+  { id: "ursachen", part: 2, type: "multi",
+    when: a => a.ausbremsen === "Wöchentlich" || a.ausbremsen === "Täglich",
+    title: a => `Sie sagen „${(a.ausbremsen || "").toLowerCase()}“, das ist zu oft. Was bremst Sie dabei meistens aus?`,
+    sub: "Mehrere Antworten möglich.",
+    options: ["Abstürze", "Langsamer PC", "WLAN oder Netzwerk", "Drucker", "Fernzugriff oder VPN"],
+    other: "Etwas anderes" },
+
+  { id: "sicherheit", part: 3, type: "scale",
+    title: "Wie sicher fühlen Sie sich im Umgang mit Phishing-Mails, Passwörtern und MFA?",
+    ends: ["Eher unsicher", "Habe ich im Griff"],
+    say: ["klick", "Psst, das bleibt unter uns. Ist ja anonym."] },
+
+  { id: "schulungen", part: 3, type: "multi", optional: true,
+    title: "Zu welchen Themen wünschen Sie sich eine kurze Schulung oder Anleitung?",
+    sub: "Mehrere Antworten möglich.",
+    options: ["Teams", "Outlook", "Excel", "SharePoint und OneDrive", "Phishing erkennen", "Passwörter und MFA", "Diensthandy"],
+    other: "Anderes Thema" },
+
+  { id: "wunsch", part: 4, type: "text", optional: true,
+    title: "Sie haben einen Wunsch an die IT frei. Was sollen wir als Nächstes angehen?",
+    placeholder: "Groß oder klein, alles ist willkommen.",
+    say: ["klick", "Letzte Frage, fast geschafft!"] }
+];
+
+/* =========================================================
+   3) TECHNIK – ab hier muss nichts angepasst werden
+   ========================================================= */
+const DEMO = !CONFIG.environmentId || !CONFIG.surveyId;
+const DONE_KEY = "ics-it-umfrage-2026-gesendet";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const stage = document.getElementById("stage");
+const bar = document.getElementById("bar");
+const answers = {};
+let screen = { kind: "welcome" };
+let busy = false;
+let lastPayload = null;
+
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const visible = () => STEPS.filter(s => !s.when || s.when(answers));
+
+/* ---------- Die Kreaturen ---------- */
+const Crew = (() => {
+  const zone = document.getElementById("crew");
+  const POS = ["Das freut uns!", "Wunderbar!", "Weiter so!", "Hach, schön."];
+  const NEG = ["Oh. Das nehmen wir ernst.", "Danke für die Ehrlichkeit.", "Da müssen wir ran."];
+  const NEU = ["Notiert.", "Verstanden.", "Alles klar."];
+  const defs = [
+    { key: "pixel", offset: -112, lines: ["Hihi, das kitzelt.", "Bitte nicht auf den Bildschirm tippen.", "Huch!"] },
+    { key: "taste", offset: 0,    lines: ["Klack-klack!", "Nicht so fest drücken, bitte.", "Ich bin ganz Taste."] },
+    { key: "klick", offset: 112,  lines: ["Klick!", "Bitte nicht doppelklicken.", "Ich bin ganz Ohr. Also, ganz Maus."] }
+  ];
+  const list = defs.map(d => {
+    const el = zone.querySelector(`[data-c="${d.key}"]`);
+    return { ...d, el, hop: el.querySelector(".hop"), tilt: el.querySelector(".tilt"),
+      pupils: [...el.querySelectorAll(".pupil")], bubble: el.querySelector(".bubble"),
+      x: innerWidth / 2 + d.offset, vx: 0, nextBlink: performance.now() + 1500 + Math.random() * 3000,
+      lastTickle: 0, moodTimer: 0, sayTimer: 0, classTimers: {} };
+  });
+  const ptr = { x: innerWidth / 2, y: innerHeight * 0.4 };
+  let lastMove = performance.now(), idleSaid = false, lastReact = 0;
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const byKey = k => list.find(c => c.key === k);
+
+  addEventListener("pointermove", e => { ptr.x = e.clientX; ptr.y = e.clientY; lastMove = performance.now(); idleSaid = false; }, { passive: true });
+  addEventListener("pointerdown", e => { ptr.x = e.clientX; ptr.y = e.clientY; lastMove = performance.now(); idleSaid = false; }, { passive: true });
+
+  function flash(c, cls, ms) {
+    c.el.classList.remove(cls); void c.el.offsetWidth; c.el.classList.add(cls);
+    clearTimeout(c.classTimers[cls]); c.classTimers[cls] = setTimeout(() => c.el.classList.remove(cls), ms);
+  }
+  function setMood(c, m, ms) {
+    c.el.dataset.mood = m; clearTimeout(c.moodTimer);
+    if (ms) c.moodTimer = setTimeout(() => { c.el.dataset.mood = "happy"; }, ms);
+  }
+  function jump(c) {
+    if (reduceMotion) return;
+    c.hop.classList.remove("jump"); void c.hop.offsetWidth; c.hop.classList.add("jump");
+  }
+  function cheer(c) { jump(c); flash(c, "cheer", 900); }
+  function say(c, text, ms = 2800) {
+    c.bubble.textContent = text; c.bubble.classList.add("show");
+    clearTimeout(c.sayTimer); c.sayTimer = setTimeout(() => c.bubble.classList.remove("show"), ms);
+  }
+
+  list.forEach(c => c.el.querySelector("svg").addEventListener("click", () => { cheer(c); setMood(c, "happy"); say(c, pick(c.lines)); }));
+
+  function frame(t) {
+    const W = innerWidth;
+    const half = (list[0].el.offsetWidth || 96) / 2;
+    const idle = t - lastMove > 4000;
+    if (t - lastMove > 9000 && !idleSaid) { idleSaid = true; say(pick(list), "Noch da? Wir warten gern."); }
+    list.forEach((c, i) => {
+      // Feste Plätze nebeneinander unten in der Mitte, kein Hinterherlaufen
+      c.x = clamp(W / 2 + c.offset * (half / 48), half, W - half);
+      c.el.style.transform = `translateX(${(c.x - half).toFixed(1)}px)`;
+
+      const r = c.el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height * 0.45;
+      let tx = ptr.x, ty = ptr.y;
+      if (idle) { tx = cx + Math.sin(t / 900 + i * 2) * 200; ty = cy - 80 + Math.cos(t / 1300 + i) * 60; }
+      const dx = tx - cx, dy = ty - cy, d = Math.hypot(dx, dy) || 1, m = Math.min(d / 60, 1) * 3.6;
+      const tr = `translate(${(dx / d * m).toFixed(2)} ${(dy / d * m).toFixed(2)})`;
+      c.pupils.forEach(p => p.setAttribute("transform", tr));
+
+      if (t > c.nextBlink) { flash(c, "blink", 140); c.nextBlink = t + 2200 + Math.random() * 4200; }
+
+      if (!idle && Math.hypot(ptr.x - cx, ptr.y - (r.top + r.height / 2)) < r.width * 0.55 && t - c.lastTickle > 3000) {
+        c.lastTickle = t; flash(c, "wiggle", 520); setMood(c, "wow", 900);
+        if (Math.random() < 0.5) say(c, pick(c.lines), 2000);
+      }
+      if (c.bubble.classList.contains("show")) {
+        const bw = c.bubble.offsetWidth; let shift = 0;
+        if (cx - bw / 2 < 8) shift = 8 - (cx - bw / 2);
+        if (cx + bw / 2 > W - 8) shift = (W - 8) - (cx + bw / 2);
+        c.bubble.style.setProperty("--shift", shift.toFixed(0) + "px");
+      }
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  let typingTimer = 0;
+  return {
+    say: (k, text) => say(byKey(k), text),
+    moodFor(v) {
+      const m = v >= 4 ? "happy" : v === 3 ? "neutral" : "sad";
+      list.forEach(c => setMood(c, m, 4500));
+    },
+    cheerFor(v) {
+      if (v == null) return;
+      this.moodFor(v);
+      const now = performance.now();
+      if (now - lastReact < 1400) return;
+      lastReact = now;
+      const c = pick(list);
+      if (v >= 4) { cheer(c); say(c, pick(POS)); }
+      else if (v <= 2) { say(c, pick(NEG)); }
+      else if (Math.random() < 0.5) { say(c, pick(NEU), 1800); }
+    },
+    buzz() { const r = byKey("taste"); flash(r, "wiggle", 520); flash(r, "busy", 700); },
+    typing() {
+      const r = byKey("taste"); r.el.classList.add("busy");
+      clearTimeout(typingTimer); typingTimer = setTimeout(() => r.el.classList.remove("busy"), 900);
+    },
+    finale() {
+      list.forEach((c, i) => setTimeout(() => { setMood(c, "happy"); cheer(c); }, i * 160));
+      setTimeout(() => say(byKey("taste"), "Danke fürs Mitmachen!", 3500), 500);
+    },
+    oops() { list.forEach(c => setMood(c, "sad", 3000)); say(byKey("klick"), "Hm, die Verbindung hakt."); }
+  };
+})();
+
+/* ---------- Tastatursteuerung für Auswahlgruppen ---------- */
+function radioKeys(btns, onSelect) {
+  btns.forEach((b, i) => b.addEventListener("keydown", e => {
+    let j = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") j = Math.min(i + 1, btns.length - 1);
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") j = Math.max(i - 1, 0);
+    if (j != null) { e.preventDefault(); btns[j].focus(); onSelect(j); }
+  }));
+}
+function roving(btns, sel) { btns.forEach((b, i) => { b.tabIndex = (sel == null ? i === 0 : i === sel) ? 0 : -1; }); }
+
+/* ---------- Antwort-Bausteine ---------- */
+const WIDGETS = {
+  stops(s, root, tid, refresh) {
+    const read = h("p", { class: "readout", "aria-hidden": "true" });
+    const fill = h("div", { class: "rail-fill" });
+    const track = h("div", { class: "track", role: "radiogroup", "aria-labelledby": tid }, h("div", { class: "rail" }, fill));
+    const btns = s.labels.map(lab => h("button", { type: "button", class: "stop", role: "radio", "aria-checked": "false" },
+      h("span", { class: "dot" }), h("span", { class: "lab" }, lab)));
+    track.append(...btns); root.append(read, track);
+    const paint = () => {
+      const v = answers[s.id];
+      read.textContent = v ? s.labels[v - 1] : "Tippen oder ziehen Sie auf der Skala";
+      read.classList.toggle("empty", !v);
+      btns.forEach((b, i) => b.setAttribute("aria-checked", String(v === i + 1)));
+      roving(btns, v ? v - 1 : null);
+      fill.style.width = v ? ((v - 1) / (s.labels.length - 1) * 100) + "%" : "0";
+    };
+    const set = (v, commit) => {
+      if (answers[s.id] !== v) { answers[s.id] = v; paint(); refresh(); Crew.moodFor(v); }
+      if (commit) Crew.cheerFor(v);
+    };
+    const nearest = e => {
+      let best = 1, bd = Infinity;
+      btns.forEach((b, i) => { const r = b.querySelector(".dot").getBoundingClientRect(); const d = Math.abs(e.clientX - (r.left + r.width / 2)); if (d < bd) { bd = d; best = i + 1; } });
+      return best;
+    };
+    let dragging = false;
+    track.addEventListener("pointerdown", e => { dragging = true; track.setPointerCapture(e.pointerId); set(nearest(e), false); e.preventDefault(); });
+    track.addEventListener("pointermove", e => { if (dragging) set(nearest(e), false); });
+    const end = () => { if (dragging) { dragging = false; Crew.cheerFor(answers[s.id]); } };
+    track.addEventListener("pointerup", end); track.addEventListener("pointercancel", end);
+    btns.forEach((b, i) => b.addEventListener("click", e => { if (e.detail === 0) set(i + 1, true); }));
+    radioKeys(btns, j => set(j + 1, true));
+    paint();
+  },
+
+  battery(s, root, tid, refresh) {
+    const read = h("p", { class: "readout", "aria-hidden": "true" });
+    const bat = h("div", { class: "battery", role: "radiogroup", "aria-labelledby": tid });
+    const cells = s.labels.map(lab => h("button", { type: "button", class: "cell", role: "radio", "aria-checked": "false", "aria-label": lab }));
+    bat.append(...cells, h("span", { class: "nub", "aria-hidden": "true" }));
+    root.append(read, bat, h("div", { class: "ends", "aria-hidden": "true" }, h("span", {}, s.labels[0]), h("span", {}, s.labels[s.labels.length - 1])));
+    const paint = () => {
+      const v = answers[s.id];
+      read.textContent = v ? s.labels[v - 1] : "Wie voll ist Ihr Akku?";
+      read.classList.toggle("empty", !v);
+      bat.dataset.level = v && v <= 2 ? "low" : "ok";
+      cells.forEach((c, i) => { c.classList.toggle("on", v != null && i < v); c.setAttribute("aria-checked", String(v === i + 1)); });
+      roving(cells, v ? v - 1 : null);
+    };
+    const set = v => { answers[s.id] = v; paint(); refresh(); Crew.cheerFor(v); };
+    cells.forEach((c, i) => c.addEventListener("click", () => set(i + 1)));
+    radioKeys(cells, j => set(j + 1));
+    paint();
+  },
+
+  scale(s, root, tid, refresh) {
+    const keys = h("div", { class: "keys", role: "radiogroup", "aria-labelledby": tid });
+    const btns = [1, 2, 3, 4, 5].map(n => h("button", { type: "button", class: "key", role: "radio", "aria-checked": "false",
+      "aria-label": n === 1 ? `1, ${s.ends[0]}` : n === 5 ? `5, ${s.ends[1]}` : String(n) }, String(n)));
+    keys.append(...btns);
+    root.append(keys, h("div", { class: "ends", style: "max-width:338px", "aria-hidden": "true" }, h("span", {}, s.ends[0]), h("span", {}, s.ends[1])));
+    const paint = () => { const v = answers[s.id]; btns.forEach((b, i) => b.setAttribute("aria-checked", String(v === i + 1))); roving(btns, v ? v - 1 : null); };
+    const set = v => { answers[s.id] = v; paint(); refresh(); Crew.cheerFor(v); };
+    btns.forEach((b, i) => b.addEventListener("click", () => set(i + 1)));
+    radioKeys(btns, j => set(j + 1));
+    paint();
+  },
+
+  matrix(s, root, tid, refresh) {
+    if (!answers[s.id]) answers[s.id] = {};
+    const a = answers[s.id];
+    s.rows.forEach((row, ri) => {
+      const lid = `${tid}-r${ri}`;
+      const seg = h("div", { class: "seg", role: "radiogroup", "aria-labelledby": lid });
+      const btns = s.cols.map(col => h("button", { type: "button", class: "segb", role: "radio", "aria-checked": "false", lang: "de" }, col));
+      seg.append(...btns);
+      const paint = () => { btns.forEach((b, i) => b.setAttribute("aria-checked", String(a[row] === s.cols[i]))); const sel = s.cols.indexOf(a[row]); roving(btns, sel >= 0 ? sel : null); };
+      const set = ci => { a[row] = s.cols[ci]; paint(); refresh(); Crew.cheerFor(ci + 1); };
+      btns.forEach((b, ci) => b.addEventListener("click", () => set(ci)));
+      radioKeys(btns, set);
+      paint();
+      root.append(h("div", { class: "mrow" }, h("p", { class: "mlab", id: lid }, row), seg));
+    });
+  },
+
+  single(s, root, tid, refresh) {
+    const group = h("div", { class: "chips", role: "radiogroup", "aria-labelledby": tid });
+    const btns = s.options.map(o => h("button", { type: "button", class: "chip", role: "radio", "aria-checked": "false" }, o));
+    group.append(...btns); root.append(group);
+    const paint = () => { const sel = s.options.indexOf(answers[s.id]); btns.forEach((b, i) => b.setAttribute("aria-checked", String(i === sel))); roving(btns, sel >= 0 ? sel : null); };
+    // Optionen sind von gut nach schlecht sortiert, daraus wird die Stimmung der Kreaturen
+    const set = i => { answers[s.id] = s.options[i]; paint(); refresh(); Crew.cheerFor(s.options.length - i); };
+    btns.forEach((b, i) => b.addEventListener("click", () => set(i)));
+    radioKeys(btns, set);
+    paint();
+  },
+
+  multi(s, root, tid, refresh) {
+    if (!answers[s.id]) answers[s.id] = { sel: new Set(), other: "" };
+    const a = answers[s.id];
+    const group = h("div", { class: "chips", role: "group", "aria-labelledby": tid });
+    const opts = [...s.options, ...(s.other ? [OTHER] : [])];
+    const btns = opts.map(o => h("button", { type: "button", class: "chip", "aria-pressed": "false" }, o === OTHER ? s.other : o));
+    group.append(...btns);
+    const other = h("input", { type: "text", class: "other", placeholder: "Bitte kurz beschreiben", "aria-label": s.other || "Sonstiges", maxlength: "300" });
+    other.value = a.other;
+    other.addEventListener("input", () => { a.other = other.value; refresh(); Crew.typing(); });
+    root.append(group, other);
+    const paint = () => { btns.forEach((b, i) => b.setAttribute("aria-pressed", String(a.sel.has(opts[i])))); other.hidden = !a.sel.has(OTHER); };
+    btns.forEach((b, i) => b.addEventListener("click", () => {
+      const o = opts[i];
+      a.sel.has(o) ? a.sel.delete(o) : a.sel.add(o);
+      paint(); refresh(); Crew.buzz();
+      if (o === OTHER && a.sel.has(OTHER)) other.focus();
+    }));
+    paint();
+  },
+
+  text(s, root, tid, refresh) {
+    const ta = h("textarea", { "aria-labelledby": tid, placeholder: s.placeholder || "", maxlength: "2000" });
+    ta.value = answers[s.id] || "";
+    ta.addEventListener("input", () => { answers[s.id] = ta.value; refresh(); Crew.typing(); });
+    root.append(ta);
+  }
+};
+
+function hasContent(s) {
+  const a = answers[s.id];
+  switch (s.type) {
+    case "matrix": return !!a && s.rows.every(r => a[r]);
+    case "multi": return !!a && [...a.sel].some(x => x !== OTHER || a.other.trim());
+    case "text": return !!(a && a.trim());
+    default: return a != null;
+  }
+}
+
+/* ---------- Karten ---------- */
+function shell(extra = "") {
+  const c = h("article", { class: "card " + extra });
+  c.append(h("span", { class: "flap", "aria-hidden": "true" }));
+  return c;
+}
+
+function renderStep(s) {
+  const c = shell();
+  const tid = "t-" + s.id;
+  c.append(h("p", { class: "part" }, `Teil ${s.part} von ${PARTS.length}: ${PARTS[s.part - 1]}`));
+  c.append(h("h2", { id: tid, tabindex: "-1" }, typeof s.title === "function" ? s.title(answers) : s.title));
+  if (s.sub) c.append(h("p", { class: "sub" }, s.sub));
+  const body = h("div", { class: "answer" });
+  c.append(body);
+  const nextBtn = h("button", { type: "button", class: "primary", onclick: next });
+  const hint = h("span", { class: "hint" });
+  const err = h("p", { class: "error", role: "alert", hidden: true });
+  c.append(h("div", { class: "nav" }, h("button", { type: "button", class: "ghost", onclick: back }, "Zurück"),
+    h("span", { style: "display:flex;align-items:center;gap:14px" }, hint, nextBtn), err));
+  const refresh = () => {
+    const vis = visible();
+    const last = vis[vis.length - 1].id === s.id;
+    const filled = hasContent(s);
+    nextBtn.disabled = !(s.optional || filled);
+    nextBtn.textContent = last ? "Antworten absenden" : (s.optional && !filled ? "Überspringen" : "Weiter");
+    hint.textContent = s.optional && !filled ? "Optional" : "";
+    updateProgress();
+  };
+  WIDGETS[s.type](s, body, tid, refresh);
+  refresh();
+  return c;
+}
+
+function renderWelcome() {
+  const c = shell("welcome");
+  c.append(
+    h("h1", { tabindex: "-1" }, "Wie läuft’s mit Ihrer IT?"),
+    h("p", { class: "lead" }, "Acht kurze Fragen, etwa vier Minuten. Ihre Antworten helfen uns zu entscheiden, was wir als Nächstes verbessern."),
+    h("p", { class: "note" }, "Die Umfrage ist anonym. Wir speichern weder Ihren Namen noch Ihre E-Mail-Adresse."),
+    h("div", { class: "nav" }, h("span"), h("button", { type: "button", class: "primary", onclick: next }, "Umfrage starten"))
+  );
+  return c;
+}
+
+function ending() {
+  const v = answers.gesamt;
+  if (v >= 4) return ["Das freut uns!", "Vielen Dank für Ihr Feedback. Wir werten alle Antworten aus und informieren Sie über die Ergebnisse und unsere nächsten Schritte."];
+  if (v != null && v <= 2) return ["Danke für Ihre Offenheit.", "Wir nehmen Ihr Feedback ernst. Nach der Auswertung melden wir uns mit konkreten Schritten, was wir verbessern."];
+  return ["Vielen Dank für Ihre Zeit.", "Wir werten alle Antworten aus und informieren Sie über die Ergebnisse und unsere nächsten Schritte."];
+}
+
+function renderEnd() {
+  const [t, p] = ending();
+  const c = shell("end");
+  c.append(h("h1", { tabindex: "-1" }, t), h("p", { class: "lead" }, p), h("p", { class: "note" }, "Sie können dieses Fenster jetzt schließen."));
+  if (DEMO && lastPayload) {
+    c.append(h("details", {}, h("summary", {}, "Demo: Diese Daten würden an Formbricks gesendet"), h("pre", {}, JSON.stringify(lastPayload, null, 2))));
+    c.append(h("div", { class: "nav" }, h("span"), h("button", { type: "button", class: "primary", onclick: restart }, "Demo neu starten")));
+  }
+  return c;
+}
+
+function renderAlready() {
+  const c = shell("end");
+  c.append(h("h1", { tabindex: "-1" }, "Sie haben bereits teilgenommen."), h("p", { class: "lead" }, "Vielen Dank! Ihre Antworten sind bei uns angekommen."));
+  return c;
+}
+
+function render() {
+  if (screen.kind === "welcome") return renderWelcome();
+  if (screen.kind === "end") return renderEnd();
+  if (screen.kind === "already") return renderAlready();
+  return renderStep(STEPS.find(s => s.id === screen.id));
+}
+
+function swap(card, dir) {
+  const old = stage.querySelector(".card:not(.leaving)");
+  if (old) {
+    old.classList.add("leaving", dir < 0 ? "to-right" : "to-left");
+    old.setAttribute("aria-hidden", "true");
+    setTimeout(() => old.remove(), reduceMotion ? 0 : 430);
+  }
+  card.classList.add("entering");
+  stage.append(card);
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove("entering")));
+  setTimeout(() => { const f = card.querySelector("h1,h2"); if (f) f.focus({ preventScroll: true }); }, 60);
+}
+
+function updateProgress() {
+  let p = 0;
+  if (screen.kind === "step") { const vis = visible(); p = vis.findIndex(s => s.id === screen.id) / vis.length; }
+  else if (screen.kind !== "welcome") p = 1;
+  bar.style.width = (p * 100) + "%";
+  bar.parentElement.setAttribute("aria-valuenow", String(Math.round(p * 100)));
+}
+
+function go(next, dir = 1) {
+  screen = next;
+  swap(render(), dir);
+  updateProgress();
+  if (screen.kind === "step") {
+    const s = STEPS.find(x => x.id === screen.id);
+    if (s.say && dir > 0) setTimeout(() => Crew.say(s.say[0], s.say[1]), 450);
+  }
+  scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+}
+
+function next() {
+  if (screen.kind === "welcome") return go({ kind: "step", id: visible()[0].id });
+  const vis = visible();
+  const i = vis.findIndex(s => s.id === screen.id);
+  if (i < vis.length - 1) go({ kind: "step", id: vis[i + 1].id });
+  else submit();
+}
+
+function back() {
+  const vis = visible();
+  const i = vis.findIndex(s => s.id === screen.id);
+  if (i > 0) go({ kind: "step", id: vis[i - 1].id }, -1);
+  else go({ kind: "welcome" }, -1);
+}
+
+function restart() {
+  for (const k of Object.keys(answers)) delete answers[k];
+  lastPayload = null;
+  go({ kind: "welcome" }, -1);
+}
+
+/* ---------- Formbricks ---------- */
+function buildData() {
+  const out = {};
+  for (const s of visible()) {
+    const a = answers[s.id];
+    let v;
+    switch (s.type) {
+      case "matrix": v = a && Object.keys(a).length ? { ...a } : undefined; break;
+      case "multi":
+        if (a) {
+          v = [...a.sel].filter(x => x !== OTHER);
+          if (a.sel.has(OTHER) && a.other.trim()) v.push(a.other.trim());
+          if (!v.length) v = undefined;
+        }
+        break;
+      case "text": v = a && a.trim() ? a.trim() : undefined; break;
+      default: v = a;
+    }
+    if (v != null) out[CONFIG.questionIds[s.id] || s.id] = v;
+  }
+  return out;
+}
+
+async function submit() {
+  if (busy) return;
+  busy = true;
+  const card = stage.querySelector(".card:not(.leaving)");
+  const btn = card.querySelector(".primary"), err = card.querySelector(".error");
+  btn.disabled = true; btn.textContent = "Wird gesendet …"; err.hidden = true;
+  const payload = { surveyId: CONFIG.surveyId || "DEMO", finished: true, data: buildData() };
+  try {
+    if (DEMO) {
+      await new Promise(r => setTimeout(r, 600));
+      console.info("[Demo] Formbricks-Payload:", payload);
+    } else {
+      const url = CONFIG.formbricksHost.replace(/\/+$/, "") + "/api/v1/client/" + encodeURIComponent(CONFIG.environmentId) + "/responses";
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error("HTTP " + res.status + " " + (await res.text().catch(() => "")).slice(0, 400));
+      try { localStorage.setItem(DONE_KEY, "1"); } catch (e) {}
+    }
+    lastPayload = payload;
+    busy = false;
+    go({ kind: "end" });
+    Crew.finale();
+  } catch (e) {
+    console.error("Formbricks-Fehler:", e);
+    busy = false;
+    btn.disabled = false; btn.textContent = "Erneut senden";
+    err.textContent = "Die Antworten konnten nicht gesendet werden. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.";
+    err.hidden = false;
+    Crew.oops();
+  }
+}
+
+/* ---------- Tastatur: Enter = weiter, 1–5 = Skala ---------- */
+addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "textarea" || tag === "input") return;
+  if (screen.kind !== "step") {
+    if (e.key === "Enter" && screen.kind === "welcome" && tag !== "button") next();
+    return;
+  }
+  const s = STEPS.find(x => x.id === screen.id);
+  if (/^[1-5]$/.test(e.key) && ["stops", "battery", "scale"].includes(s.type)) {
+    const card = stage.querySelector(".card:not(.leaving)");
+    const btns = card.querySelectorAll('[role="radio"]');
+    const b = btns[Number(e.key) - 1];
+    if (b) { b.focus(); s.type === "stops" ? b.dispatchEvent(new MouseEvent("click", { detail: 0 })) : b.click(); }
+  }
+  if (e.key === "Enter" && tag !== "button") {
+    const btn = stage.querySelector(".card:not(.leaving) .primary");
+    if (btn && !btn.disabled) btn.click();
+  }
+});
+
+/* ---------- Start ---------- */
+if (location.hash === "#neu") { try { localStorage.removeItem(DONE_KEY); } catch (e) {} }
+let alreadyDone = false;
+try { alreadyDone = !DEMO && localStorage.getItem(DONE_KEY) === "1"; } catch (e) {}
+document.getElementById("demo").hidden = !DEMO;
+screen = { kind: alreadyDone ? "already" : "welcome" };
+stage.append(render());
+updateProgress();
+setTimeout(() => Crew.say("pixel", alreadyDone ? "Schön, Sie wiederzusehen!" : "Hallo! Wir drei begleiten Sie durch die Umfrage.", 3800), 900);
+</script>
+</body>
+</html>
